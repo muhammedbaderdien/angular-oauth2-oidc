@@ -525,12 +525,11 @@ export class OAuthService extends AuthConfig implements OnDestroy {
           }
 
           this.loginUrl = doc.authorization_endpoint;
-          this.logoutUrl = doc.end_session_endpoint || this.logoutUrl;
+          this.logoutUrl = this.logoutUrl || doc.end_session_endpoint;
           this.grantTypesSupported = doc.grant_types_supported;
           this.issuer = doc.issuer;
           this.tokenEndpoint = doc.token_endpoint;
-          this.userinfoEndpoint =
-            doc.userinfo_endpoint || this.userinfoEndpoint;
+          this.userinfoEndpoint = this.userinfoEndpoint || doc.userinfo_endpoint;
           this.jwksUri = doc.jwks_uri;
           this.sessionCheckIFrameUrl =
             doc.check_session_iframe || this.sessionCheckIFrameUrl;
