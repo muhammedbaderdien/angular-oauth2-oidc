@@ -499,13 +499,18 @@ export class OAuthService extends AuthConfig implements OnDestroy {
     fullUrl: string = null
   ): Promise<OAuthSuccessEvent> {
     return new Promise((resolve, reject) => {
-      if (!fullUrl) {
+      if (!fullUrl && !this.issuerFullUrl) {
         fullUrl = this.issuer || '';
         if (!fullUrl.endsWith('/')) {
           fullUrl += '/';
         }
         fullUrl += '.well-known/openid-configuration';
+      } else {
+        if (!fullUrl && this.issuerFullUrl) {
+          fullUrl = this.issuerFullUrl;
+        }
       }
+      console.log('fullUrl set to', fullUrl);
 
       if (!this.validateUrlForHttps(fullUrl)) {
         reject(
@@ -529,8 +534,9 @@ export class OAuthService extends AuthConfig implements OnDestroy {
           this.grantTypesSupported = doc.grant_types_supported;
           this.issuer = doc.issuer;
           this.tokenEndpoint = doc.token_endpoint;
-          this.userinfoEndpoint = this.userinfoEndpoint || doc.userinfo_endpoint;
-          this.jwksUri = doc.jwks_uri;
+          this.userinfoEndpoint =
+            this.userinfoEndpoint || doc.userinfo_endpoint;
+          this.jwksUri = this.jwksEndPoint || doc.jwks_uri;
           this.sessionCheckIFrameUrl =
             doc.check_session_iframe || this.sessionCheckIFrameUrl;
 
@@ -723,45 +729,48 @@ export class OAuthService extends AuthConfig implements OnDestroy {
         'Bearer ' + this.getAccessToken()
       );
 
-      this.http
-        .get<UserInfo>(this.userinfoEndpoint, { headers })
-        .subscribe(
-          info => {
-            this.debug('userinfo received', info);
+      const httpOptions = {
+        params: new HttpParams().set('access_token', this.getAccessToken()),
+        headers: headers
+      };
 
-            const existingClaims = this.getIdentityClaims() || {};
+      this.http.get<UserInfo>(this.userinfoEndpoint, httpOptions).subscribe(
+        info => {
+          console.log('userinfo received', info);
 
-            if (!this.skipSubjectCheck) {
-              if (
-                this.oidc &&
-                (!existingClaims['sub'] || info.sub !== existingClaims['sub'])
-              ) {
-                const err =
-                  'if property oidc is true, the received user-id (sub) has to be the user-id ' +
-                  'of the user that has logged in with oidc.\n' +
-                  'if you are not using oidc but just oauth2 password flow set oidc to false';
+          this.debug('userinfo received', info);
 
-                reject(err);
-                return;
-              }
+          const existingClaims = this.getIdentityClaims() || {};
+
+          if (!this.skipSubjectCheck) {
+            if (
+              this.oidc &&
+              (!existingClaims['sub'] || info.sub !== existingClaims['sub'])
+            ) {
+              const err =
+                'if property oidc is true, the received user-id (sub) has to be the user-id ' +
+                'of the user that has logged in with oidc.\n' +
+                'if you are not using oidc but just oauth2 password flow set oidc to false';
+
+              reject(err);
+              return;
             }
-
-            info = Object.assign({}, existingClaims, info);
-
-            this._storage.setItem('id_token_claims_obj', JSON.stringify(info));
-            this.eventsSubject.next(
-              new OAuthSuccessEvent('user_profile_loaded')
-            );
-            resolve(info);
-          },
-          err => {
-            this.logger.error('error loading user info', err);
-            this.eventsSubject.next(
-              new OAuthErrorEvent('user_profile_load_error', err)
-            );
-            reject(err);
           }
-        );
+
+          info = Object.assign({}, existingClaims, info);
+
+          this._storage.setItem('id_token_claims_obj', JSON.stringify(info));
+          this.eventsSubject.next(new OAuthSuccessEvent('user_profile_loaded'));
+          resolve(info);
+        },
+        err => {
+          this.logger.error('error loading user info', err);
+          this.eventsSubject.next(
+            new OAuthErrorEvent('user_profile_load_error', err)
+          );
+          reject(err);
+        }
+      );
     });
   }
 

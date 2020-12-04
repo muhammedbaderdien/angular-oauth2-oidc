@@ -50,6 +50,11 @@ export class AuthConfig {
   public issuer? = '';
 
   /**
+   * The issuer's full uri.
+   */
+  public issuerFullUrl? = '';
+
+  /**
    * The logout url.
    */
   public logoutUrl? = '';
@@ -78,6 +83,10 @@ export class AuthConfig {
    * Url of the userinfo endpoint as defined by OpenId Connect.
    */
   public userinfoEndpoint?: string = null;
+  /**
+   * Url of the jwks endpoint as defined by OpenId Connect.
+   */
+  public jwksEndPoint?: string = null;
 
   public responseType? = '';
 

@@ -7,6 +7,7 @@
     "ng": "ng",
     "start": "ng serve --project sample -o",
     "build": "npm run prettier && ng build --prod --project lib && npm run copy:readme && npm run copy:license && npm run docs",
+    "install_build_pack": "npm install && npm run prettier && ng build --prod --project lib && npm run copy:readme && npm run copy:license && npm run docs && cd dist/lib && npm pack",
     "build:jwks": "npm run prettier && ng build angular-oauth2-oidc-jwks --ts-config tsconfig.npm.json",
     "test": "ng test",
     "lint": "ng lint",
